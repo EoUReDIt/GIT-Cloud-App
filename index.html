@@ -125,7 +125,7 @@ function showLogin(err) {
   $('#app').className = 'login';
   $('#app').innerHTML = `<div class="center"><h2>Connect to GitHub</h2>
     <p>Create a personal access token and paste it here. It stays in this browser only (localStorage) and is sent only to api.github.com.</p>
-    <ul class="muted"><li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained token</a>: pick your repos, grant <code>Contents: Read and write</code> and <code>Administration: Read and write</code> (needed to rename a repo).</li>
+    <ul class="muted"><li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained token</a>: pick your repos, grant <code>Contents: Read and write</code>.</li>
     <li>Or a <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" rel="noopener">classic token</a> with the <code>repo</code> scope.</li></ul>
     <input id="tok" type="password" placeholder="ghp_… or github_pat_…" autocomplete="off">
     ${err ? `<div style="color:var(--bad)">${esc(err)}</div>` : ''}
@@ -151,7 +151,7 @@ addEventListener('dragend', () => { G.drag = null; });
 async function loadRepos() {
   G.repos = [];
   for (let p = 1; p <= 5; p++) {
-    const page = await gh(`/user/repos?per_page=100&page=${p}&sort=pushed&affiliation=owner,collaborator,organization_member`);
+    const page = await gh(`/user/repos?per_page=100&page=${p}&sort=pushed&affiliation=owner`);
     G.repos.push(...page); if (page.length < 100) break;
   }
   $('#repoList').innerHTML = G.repos.map(r => `<option value="${esc(r.full_name)}"></option>`).join('');
@@ -170,16 +170,15 @@ class Pane {
       <div class="bar">
         <input class="repoPick" list="repoList" placeholder="Choose repository (type to search)…" autocomplete="off">
         <select class="branch" style="display:none"></select>
-        <button class="renameRepo" style="display:none" title="Rename repository">✎ Rename repo</button>
         <a class="ghlink muted" target="_blank" rel="noopener" style="display:none">GitHub ↗</a>
       </div>
       <div class="bar tools" style="display:none">
-        <button class="newDir">＋ New folder</button>
+        <button class="newDir" title="Create a folder, then drag files into it">＋ New folder</button>
         <button class="expandAll">Expand all</button><button class="collapseAll">Collapse all</button>
         <button class="undo" disabled>↶ Undo</button>
         <span class="muted trunc" style="margin-left:auto"></span>
       </div>
-      <div class="hint">Drag onto a folder to move · drag to the other pane to copy/move across repos · double-click or F2 to rename · Del deletes · drop files from your computer to add · Ctrl/⌘-click multi-selects · changes stay staged until you commit.</div>
+      <div class="hint">Drag files or folders onto a folder to move them · drag onto the other pane to copy/move between repos · ＋ New folder makes a destination · Ctrl/⌘-click multi-selects · nothing changes on GitHub until you commit.</div>
       <div class="tree" tabindex="0"></div>
       <div class="commitBar">
         <div class="changes"></div>
@@ -192,7 +191,6 @@ class Pane {
     pick.onfocus = () => { pick.dataset.prev = pick.value; pick.value = ''; };
     pick.onblur = () => { if (!pick.value) pick.value = pick.dataset.prev || ''; };
     pick.onchange = () => { const r = G.repos.find(x => x.full_name === pick.value.trim()); if (r) { pick.blur(); this.selectRepo(r); } };
-    this.q('.renameRepo').onclick = () => this.renameRepo();
     this.q('.newDir').onclick = () => this.newFolder();
     this.q('.expandAll').onclick = () => { this.dirs().forEach(d => this.expanded.add(d)); this.render(); };
     this.q('.collapseAll').onclick = () => { this.expanded.clear(); this.render(); };
@@ -214,7 +212,7 @@ class Pane {
     this.repo = r; store.set('rm_repo' + this.i, r.full_name); this.expanded.clear(); this.selected.clear();
     this.q('.repoPick').value = r.full_name;
     const gl = this.q('.ghlink'); gl.href = r.html_url; gl.style.display = '';
-    this.q('.renameRepo').style.display = ''; this.q('.tools').style.display = '';
+    this.q('.tools').style.display = '';
     this.files = []; this.orig = []; this.virt = new Set(); this.render();
     const gen = ++this.gen;
     try {
@@ -224,21 +222,6 @@ class Pane {
       sel.innerHTML = br.map(b => `<option>${esc(b)}</option>`).join('');
       await this.loadTree(br.includes(r.default_branch) ? r.default_branch : br[0]);
     } catch (e) { this.q('.tree').innerHTML = ''; toast(e.message, true); }
-  }
-
-  async renameRepo() {
-    const v = (prompt('New repository name:', this.repo.name) || '').trim();
-    if (!v || v === this.repo.name) return;
-    try {
-      const r = await post(`/repos/${this.repo.full_name}`, { name: v }, 'PATCH');
-      const i = G.repos.findIndex(x => x.id === r.id); if (i >= 0) G.repos[i] = r;
-      $('#repoList').innerHTML = G.repos.map(x => `<option value="${esc(x.full_name)}"></option>`).join('');
-      for (const p of G.panes) if (p.repo && p.repo.id === r.id) {
-        p.repo = r; store.set('rm_repo' + p.i, r.full_name);
-        p.q('.repoPick').value = r.full_name; p.q('.ghlink').href = r.html_url; p.render();
-      }
-      toast(`Renamed to ${r.name}`);
-    } catch (e) { toast('Rename failed: ' + e.message, true); }
   }
 
   /* ----- tree loading ----- */
@@ -398,28 +381,14 @@ class Pane {
     let base = '';
     const sel = [...this.selected][0];
     if (sel) base = this.dirs().has(sel) ? sel : dirname(sel);
-    const name = prompt(`New folder${base ? ' in ' + base : ' in repo root'}:`);
-    if (!name) return;
-    if (/[\\]/.test(name) || name === '.' || name === '..') return toast('Invalid name', true);
-    const p = join(base, name.replace(/^\/+|\/+$/g, ''));
-    if (this.dirs().has(p) || this.files.some(f => f.path === p)) return toast('Already exists', true);
+    const taken = p => this.dirs().has(p) || this.files.some(f => f.path === p);
+    let name = 'New folder', n = 2;
+    while (taken(join(base, name))) name = `New folder ${n++}`;
+    const p = join(base, name);
     this.snapshot(); this.virt.add(p);
     for (let x = p; x; x = dirname(x)) this.expanded.add(dirname(x));
     this.selected = new Set([p]); this.render();
-  }
-  async uploadFiles(list, dest) {
-    const arr = [...list]; let added = 0; this.snapshot();
-    for (const file of arr) {
-      if (file.size > 25 * 1024 * 1024) { toast(`${file.name} is over 25 MB — skipped`, true); continue; }
-      const p = join(dest, file.name);
-      if (this.files.some(f => f.path === p) || this.dirs().has(p)) { toast(`${file.name} already exists — skipped`, true); continue; }
-      try {
-        const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1] || ''); fr.onerror = rej; fr.readAsDataURL(file); });
-        this.files.push({ id: 'new:' + (++this.newId), path: p, isNew: true, b64, mode: '100644', type: 'blob' }); added++;
-      } catch { toast(`Couldn't read ${file.name} (folders aren't supported)`, true); }
-    }
-    if (!added) { this.undoStack.pop(); return; }
-    if (dest) this.expanded.add(dest); this.render();
+    this.startRename(p);   // type the real name straight away
   }
 
   /* ----- cross-repo copy / move ----- */
@@ -655,7 +624,6 @@ class Pane {
       const d = G.drag; G.drag = null;
       if (d && d.pane === this) this.moveItems(d.paths, dest);
       else if (d) this.receive(dest, d.pane, d.paths, crossMove(e));
-      else if (e.dataTransfer.files.length) this.uploadFiles(e.dataTransfer.files, dest);
     });
   }
 }

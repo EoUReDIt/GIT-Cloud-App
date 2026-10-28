@@ -18,8 +18,7 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 (async () => {
   const b = await chromium.launch(); const page = await b.newPage({ viewport: { width: 1300, height: 800 } });
   const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => m.type() === 'error' && errs.push(m.text()));
-  page.on('dialog', d => d.accept(d.type() === 'prompt' ? (d.message().includes('New folder') ? 'newdir' : 'alpha2') : undefined));
-  await page.route('https://api.github.com/**', async route => {
+    await page.route('https://api.github.com/**', async route => {
     const req = route.request(), u = new URL(req.url()), m = req.method();
     if (m === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const send = (o, s = 200) => route.fulfill({ status: s, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(o) });
@@ -81,21 +80,21 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
   ok(await page.locator(`${P(1)} .summary`).textContent() === '1 added' && /1 deleted/.test(await page.locator(`${P(2)} .summary`).textContent()), 'move mode (add in dest, delete in source)');
   await page.click('#commitAll'); await page.waitForTimeout(900);
   ok(tree('me/alpha')['top.txt'] && !tree('me/beta')['top.txt'], 'Commit both applied move');
-  // 7. collision skip
-  await row(2, 'lib/documents').or(row(2,'lib')).first().click();
-  // 8. OS file upload
-  await page.locator(`${P(1)} .tree`).evaluate(async el => {
-    const dt = new DataTransfer(); dt.items.add(new File(['hello'], 'up.txt'));
-    const root = el.querySelector('.row.root');
-    root.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
-    root.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
-  });
-  await page.waitForTimeout(200);
-  ok(await row(1, 'up.txt').count() === 1, 'OS file drop stages upload');
-  await page.click(`${P(1)} .undo`); ok(await row(1, 'up.txt').count() === 0, 'undo works');
-  // 9. repo rename
-  await page.locator(`${P(1)} .renameRepo`).click(); await page.waitForTimeout(300);
-  ok(!!repos['me/alpha2'] && (await page.locator('.repoPick').first().inputValue()) === 'me/alpha2', 'repo renamed');
+  // 7. new folder in the destination pane, then drag a file from the other pane into it
+  await page.click(`${P(2)} .newDir`);
+  await page.keyboard.type('inbox'); await page.keyboard.press('Enter');
+  ok(await row(2, 'inbox').count() === 1, 'new folder created and named inline');
+  await row(1, 'README.md').dragTo(row(2, 'inbox'));
+  await page.click(`${P(2)} .commit`); await page.waitForTimeout(600);
+  ok(tree('me/beta')['inbox/README.md'] && !tree('me/beta')['inbox/.gitkeep'], 'file landed in new folder (no stray .gitkeep)');
+  ok(tree('me/alpha')['README.md'], 'copy mode left source intact');
+  // 8. new folder in same pane + move into it; empty folder gets .gitkeep
+  await page.click(`${P(1)} .newDir`); await page.keyboard.press('Enter');
+  ok(await row(1, 'New folder').count() === 1, 'default folder name used');
+  await page.click(`${P(1)} .newDir`); await page.keyboard.type('keep'); await page.keyboard.press('Enter');
+  await row(1, 'top.txt').dragTo(row(1, 'New folder'));
+  await page.click(`${P(1)} .commit`); await page.waitForTimeout(600);
+  ok(tree('me/alpha')['New folder/top.txt'] && tree('me/alpha')['New folder/keep/.gitkeep'], 'same-pane move into new folder; empty folder kept via .gitkeep');
   await page.screenshot({ path: process.argv[3] });
   console.log('errors:', errs); await b.close();
 })();

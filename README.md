@@ -2,10 +2,12 @@
 
 A zero-install browser app for managing GitHub repositories with drag and drop. It runs entirely in your browser (one HTML file, no server, no build step) and talks directly to the GitHub API.
 
-- **Two panes**, each showing any repository and branch you have access to.
-- **Drag files or folders between folders** to move them. Drag between panes to **copy or move across repositories**.
-- **Rename** files, folders and whole repositories (double-click or F2).
-- **Drop files from your computer** to add them.
+Scope: **moving files between the repositories of one personal GitHub account.** It deliberately does not handle organizations, enterprise accounts, repo settings or renaming repositories.
+
+- **Two panes**, each showing any repository and branch of your account.
+- **Drag files or folders between panes** to copy or move them across repositories.
+- **Create a folder** (＋ New folder), name it, then drag files into it. Works in either pane, so you can build the destination layout as you go.
+- Also: drag within a pane to reorganise, double-click or F2 to rename a file or folder, Del to delete, Ctrl/⌘+Z to undo.
 - Every change is **staged first** and applied as **one commit per repository** when you press Commit. Nothing touches GitHub until then.
 
 Behind the scenes the app turns your drag and drop into the right Git operations (blobs, trees, commits, ref updates) through GitHub's REST API.
@@ -39,8 +41,7 @@ The app needs a **personal access token** (PAT). The token decides exactly which
 3. **Resource owner:** your personal account.
 4. **Repository access:** choose **Only select repositories** and pick **just the repositories you want to manage** (add the others later by editing the token). Only those appear in the app's pickers.
 5. **Permissions → Repository permissions:**
-   - **Contents: Read and write** (needed to browse, move, copy and commit files).
-   - **Administration: Read and write** (only needed to rename a repository; skip it if you will not rename repos).
+   - **Contents: Read and write** (the only permission the app needs: browse, copy, move and commit files).
    - *Metadata: Read* is added automatically.
 6. Press **Generate token** and copy it (it starts with `github_pat_`). GitHub shows it only once.
 7. Paste it into the app's sign-in box and press **Connect**.
@@ -62,11 +63,10 @@ GitHub → **Settings → Developer settings → Personal access tokens → Fine
 | Move to another repo | Switch **Drag between panes** to *Move* (or hold **Shift** while dropping, which flips the current setting). |
 | Rename | Double-click the name or press **F2**. |
 | Delete | Select and press **Del**, or use the 🗑 button. |
-| New folder | **＋ New folder** (becomes real, with a `.gitkeep`, when committed). |
+| New folder | **＋ New folder**, type a name, press Enter, then drag files into it. (Git has no empty folders: a folder you fill with files just appears on commit; one left empty gets a `.gitkeep` placeholder file.) |
 | Multi-select | Ctrl/⌘-click. |
 | Undo | **↶ Undo** or Ctrl/⌘+Z. |
 | Commit | **Commit** in a pane, Ctrl/⌘+Enter, or **Commit both** in the header. |
-| Rename a repo | **✎ Rename repo** in the pane toolbar. |
 
 **Moving between repos is two commits:** the destination gets the files, the source loses them. **Commit both** does the destination first. If you commit the source first and the other commit then fails, the files exist only in your browser tab, so keep the tab open until both commits succeed.
 
@@ -88,20 +88,15 @@ GitHub → **Settings → Developer settings → Personal access tokens → Fine
 
 **Moving is not the same as keeping history.**
 - Moves inside one repository are recorded as renames, so history is followed. Copying or moving between repositories **creates new files in the destination with no history**; the old history stays in the source repository (or disappears from the tree there if you moved).
-- GitHub's per-file size limit is 100 MB; this app additionally skips files above 25 MB when you drop them from your computer. Git LFS pointer files are copied as small text pointers, not the large files behind them, so copying LFS content between repos will not work. Submodules are skipped when copying.
-
-**Renaming a repository has side effects.**
-- Existing clone URLs, GitHub Pages addresses, badges and links stop being the same address (GitHub redirects git and web links for a while, but not forever, and not Pages sites). Rename the folders on your computer's clones' remotes afterwards (`git remote set-url origin …`).
-- If the repository hosts this app, your bookmark changes too.
+- GitHub's per-file size limit is 100 MB. Git LFS pointer files are copied as small text pointers, not the large files behind them, so copying LFS content between repos will not work. Submodules are skipped when copying.
 
 **Things that look like bugs but are not.**
 - A repository is missing from the picker: the token was not granted that repository, or it has expired. Edit the token.
-- "Resource not accessible" / 403 on rename: the token lacks *Administration: Read and write*, or the repository belongs to an organization that requires approval for fine-grained tokens.
-- Repositories owned by an organization with SAML single sign-on need the token authorized for that organization (a button next to the token).
+- Repositories owned by an organization (or shared with you by someone else) are intentionally not listed; this app only shows repositories you own.
+- 403 on commit: the token lacks *Contents: Read and write* for that repository.
 - "422" on commit: the branch changed on GitHub since you loaded it. Reload the pane and redo the changes.
 - "409 empty repository": make the first commit on github.com (even adding a README), then reload.
 - Very large repositories can show a "tree truncated" warning; changes to hidden files are not possible, so use Git on your computer for those.
-- Dropping a *folder* from your computer is not supported, only files. Add folders by creating them in the app or by moving existing ones.
 - API calls are rate limited (5,000 per hour with a token). Copying hundreds of files uses roughly two calls per file.
 
 **Safe first run:** create an empty test repository, give the token access to it plus one real repository, practise copying a few files between them, then commit and check the result on github.com.
