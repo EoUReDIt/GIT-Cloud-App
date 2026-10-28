@@ -17,6 +17,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `tests/e2e.js`: headless-browser test against an in-memory fake GitHub API.
 
 ### Changed
+- README: added manual test status (classic token tested by the owner; fine-grained token and other users not yet tested).
 - README: added an AI-assistance disclosure (who wrote what, how it was tested, what that means for users).
 - Copyright holder in `LICENSE` changed from "Melbourne" to "Kaelen" (the account owner's digital persona).
 - README: new License section explaining MIT, why it suits this project, the alternatives, and licensing concerns when moving other people's files between repos.

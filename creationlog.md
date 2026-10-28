@@ -46,3 +46,9 @@ At the owner's request the copyright holder in `LICENSE` was changed from "Melbo
 ## 2026-10-28: AI-assistance disclosure
 
 At the owner's request a README section, "How this project was made (AI-assistance disclosure)", was added: code, tests and docs written by Claude in a Claude Code session; scope, real-world testing, review and approvals by the owner; tests ran only against a fake GitHub API; no security audit. Made on a fresh branch from `main` because the earlier pull request (#1) had already been merged. The owner's two articles were shared only to explain the three-body concept, and nothing from them was added to the repository.
+
+## 2026-10-28: manual test of the hosted app (human in the loop)
+
+The owner tested the live GitHub Pages app by hand, as the human in the loop, using a **classic** personal access token. Result reported: the test completed; no problems were reported (the owner gave no further detail). Claude did not test the live site (the session's network policy blocks `github.io`) and ran only the automated suite against a fake GitHub API.
+
+**Not yet tested:** a fine-grained token (the type the README recommends, with only *Contents: Read and write*), any other GitHub user or account, and repositories with branch protection. The README now says so. If a fine-grained token fails, the likely places to look are repository selection on the token and the Contents permission.
