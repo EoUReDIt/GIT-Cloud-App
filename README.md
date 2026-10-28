@@ -1,4 +1,4 @@
-# Repo Mover
+# GitHub Folder Mover
 
 A zero-install browser app for managing GitHub repositories with drag and drop. It runs entirely in your browser (one HTML file, no server, no build step) and talks directly to the GitHub API.
 
