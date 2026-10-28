@@ -52,3 +52,7 @@ At the owner's request a README section, "How this project was made (AI-assistan
 The owner tested the live GitHub Pages app by hand, as the human in the loop, using a **classic** personal access token. Result reported: the test completed; no problems were reported (the owner gave no further detail). Claude did not test the live site (the session's network policy blocks `github.io`) and ran only the automated suite against a fake GitHub API.
 
 **Not yet tested:** a fine-grained token (the type the README recommends, with only *Contents: Read and write*), any other GitHub user or account, and repositories with branch protection. The README now says so. If a fine-grained token fails, the likely places to look are repository selection on the token and the Contents permission.
+
+## 2026-10-28: marked complete (v1.0.0)
+
+After merging the manual-test record (PR #3), the owner asked for the project to be marked as completed. Recorded as **v1.0.0, complete for personal use**: a status line in the README and a `[1.0.0]` entry in the changelog. "Complete" here means the planned scope is built, merged and documented, and was hand-tested by the owner with a classic token. It does not mean every scenario was tested: fine-grained tokens, other users and branch-protected repositories remain untested, and the known limits (empty repositories, submodules, Git LFS content) stand. Any later change starts on a fresh branch from `main`.

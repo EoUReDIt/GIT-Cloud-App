@@ -5,6 +5,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [1.0.0] - 2026-10-28
+
+Project marked **complete for personal use** by the owner (human in the loop). Not yet tested: fine-grained tokens, other users or accounts, branch-protected repositories (see README).
+
 ### Added
 - **Two-pane layout.** Each pane has its own repository picker, branch picker, file tree, undo history and commit bar.
 - **Cross-repo drag and drop.** Dragging files or folders from one pane to the other copies them (or moves them; Move is the default) into the destination repo. A header setting chooses Copy or Move; holding Shift does the opposite.

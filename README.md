@@ -12,6 +12,8 @@ Scope: **moving files between the repositories of one personal GitHub account.**
 
 Behind the scenes the app turns your drag and drop into the right Git operations (blobs, trees, commits, ref updates) through GitHub's REST API.
 
+**Status: v1.0.0, complete for personal use** (marked complete by the owner on 2026-10-28). Known untested areas are listed under "How this project was made" below.
+
 ## Quick start
 
 1. Open the app (see "Launching on your personal account" below).
