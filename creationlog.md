@@ -34,3 +34,7 @@ A running record of how this project was made, kept so a future session (or a pe
 - **Scope narrowed** to moving files between repositories of one personal, non-enterprise account: repository renaming, file upload from the computer and organization repositories were removed; the token needs only *Contents: Read and write*.
 - **Tooling notes.** `gh pr create` does not work in these sessions (GraphQL is blocked), so the PR was created through the REST API. Pages hosted at the repository's GitHub Pages address.
 - **Hook false alarms.** Three times the stop hook said commits were unpushed when they were already on GitHub; the shallow clone had no local copy of the remote branch ref. Comparing `git ls-remote` against `git rev-parse HEAD` settles it.
+
+## 2026-10-28: licensing review
+
+The owner asked whether MIT was the correct license and wanted to learn about licensing. Reviewed `LICENSE` (MIT, copyright "Melbourne", from the initial commit). Conclusion: MIT stays. Small personal tool, no third-party code in `index.html`, the "as is" clause suits an app that commits to people's repositories. Explained alternatives (Apache 2.0, GPL 3.0, Unlicense/CC0, no license) and the file-licensing caveat of moving other people's code between repos, in the README's License section. The explanation is general information, not legal advice, and the links given could not be opened from the session.

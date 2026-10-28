@@ -119,4 +119,41 @@ node tests/e2e.js "$PWD/index.html" /tmp/shot.png
 
 ## License
 
-See `LICENSE`.
+This project uses the **MIT License** (full text in `LICENSE`). MIT is the right choice for a small, personal, single-file tool like this one, so it stays. This section explains why, because licensing confuses almost everyone the first time.
+
+### What a license is, and why a repository needs one
+
+Code is automatically protected by copyright the moment someone writes it. With **no license**, the default is "all rights reserved": other people may *look* at a public repository, but they have no permission to copy, change or reuse it. A license is the owner saying, in writing, what others are allowed to do. Putting a repository on GitHub, even a public one, does not by itself grant those permissions.
+
+### What MIT says, in plain words
+
+Anyone may use, copy, change, publish and even sell this software, **as long as they keep the copyright notice and the license text with it**. In return, the software comes **"as is"**: the author is not liable if it breaks something. You are not promising support, updates or fitness for any purpose.
+
+### Why MIT fits this project
+
+- It is a **small tool**, not a business secret, so there is nothing to protect with a restrictive license.
+- It is **permissive and short**: people can understand it in two minutes, and it does not force anyone who uses the code to publish their own changes.
+- The **"as is" clause matters here**: this app commits to people's repositories. If someone misuses it and loses files, MIT makes clear that the author is not responsible. (Please also read "Concerns for newcomers" above.)
+- It contains **no third-party code**. `index.html` is plain JavaScript with no libraries. The tests use Playwright, but only on the developer's machine and it is not included in the app, so no other license has to be passed along.
+
+### The main alternatives, and when you would pick them
+
+| License | In one line | Pick it when |
+| --- | --- | --- |
+| **MIT** (current) | Do almost anything; keep the notice; no warranty. | You want maximum reuse with minimum fuss. |
+| **Apache 2.0** | Like MIT, plus an explicit patent grant and more formal wording. | A company or contributors might hold patents on the idea. |
+| **GPL 3.0** | Anyone who distributes a modified version must also share their source under the GPL ("copyleft"). | You want improvements to stay open. |
+| **Unlicense / CC0** | Give it away with no conditions at all. | You do not even want the notice kept. |
+| **No license** | Nobody may reuse it. | The code should stay private to you. |
+
+Choosing is not permanent: you can release *future* versions under a different license, but copies people already received keep the license they came with.
+
+### Licensing questions that come up when you use this app
+
+- **The files you move have their own licenses.** This app copies files between repositories. If you copy someone else's code into your repository, *their* license still applies to those files (for example, GPL code does not become MIT because you moved it). Check before copying code you did not write.
+- **Your own files are yours.** The MIT license covers this app's code only. It does not touch the repositories you manage with it.
+- **Who is "the copyright holder"?** `LICENSE` names the author as "Melbourne". Use whatever name or handle you want credited, and keep it consistent.
+- **This project was written with AI assistance.** Whether and how copyright applies to AI-assisted code varies by country and is still being settled, and a person directing and reviewing the work is generally what matters. The license is the owner's statement of terms either way. If it matters for money or a job, ask a lawyer.
+- **Where to learn more:** [choosealicense.com](https://choosealicense.com/) compares common licenses in plain English, and the full MIT text is at [opensource.org/license/mit](https://opensource.org/license/mit). I could not open those sites from this session, so check them yourself.
+
+*This is general information, not legal advice.*
