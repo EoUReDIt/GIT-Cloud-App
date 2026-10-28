@@ -27,7 +27,7 @@ A running record of how this project was made, kept so a future session (or a pe
 
 **Status checks.**
 - 2026-10-28 20:58 UTC, via the GitHub API: all four rewritten commits report `verified: true`, reason `valid`; committer `noreply@anthropic.com`. The repository was public with Pages enabled.
-- Re-check after about five minutes: see the entry below.
+- 2026-10-28 21:03 UTC (about five minutes later): all six commits on the PR (the four rewritten ones plus the later `creationlog.md` and license commits) still report `verified: true`, reason `valid`, committer `noreply@anthropic.com`. The issue did **not** remain, so the planned README note (vibe-coded project, human in the loop, with citations) was **not** added, per the owner's condition.
 
 ### Other things that happened in the session (for context)
 - **Move versus copy.** The first version defaulted to *Copy* when dragging between panes, so the source file stayed put after commit. The owner reported it felt like copy rather than cut and paste. Default changed to *Move*, with Shift for Copy, and a reminder to commit the other pane.
@@ -38,3 +38,7 @@ A running record of how this project was made, kept so a future session (or a pe
 ## 2026-10-28: licensing review
 
 The owner asked whether MIT was the correct license and wanted to learn about licensing. Reviewed `LICENSE` (MIT, copyright "Melbourne", from the initial commit). Conclusion: MIT stays. Small personal tool, no third-party code in `index.html`, the "as is" clause suits an app that commits to people's repositories. Explained alternatives (Apache 2.0, GPL 3.0, Unlicense/CC0, no license) and the file-licensing caveat of moving other people's code between repos, in the README's License section. The explanation is general information, not legal advice, and the links given could not be opened from the session.
+
+## 2026-10-28: copyright holder
+
+At the owner's request the copyright holder in `LICENSE` was changed from "Melbourne" to "Kaelen", described by the owner as the digital persona of the GitHub account owner. The owner also mentioned a "three body concept" behind the persona; that is not documented anywhere in the project and was not added to any file.

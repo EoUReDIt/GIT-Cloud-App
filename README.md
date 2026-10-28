@@ -152,7 +152,7 @@ Choosing is not permanent: you can release *future* versions under a different l
 
 - **The files you move have their own licenses.** This app copies files between repositories. If you copy someone else's code into your repository, *their* license still applies to those files (for example, GPL code does not become MIT because you moved it). Check before copying code you did not write.
 - **Your own files are yours.** The MIT license covers this app's code only. It does not touch the repositories you manage with it.
-- **Who is "the copyright holder"?** `LICENSE` names the author as "Melbourne". Use whatever name or handle you want credited, and keep it consistent.
+- **Who is "the copyright holder"?** `LICENSE` names the holder as "Kaelen", the digital persona of the GitHub account owner. A copyright holder can be a name or handle of the owner's choosing; keep it consistent across the project.
 - **This project was written with AI assistance.** Whether and how copyright applies to AI-assisted code varies by country and is still being settled, and a person directing and reviewing the work is generally what matters. The license is the owner's statement of terms either way. If it matters for money or a job, ask a lawyer.
 - **Where to learn more:** [choosealicense.com](https://choosealicense.com/) compares common licenses in plain English, and the full MIT text is at [opensource.org/license/mit](https://opensource.org/license/mit). I could not open those sites from this session, so check them yourself.
 
