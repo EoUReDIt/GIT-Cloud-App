@@ -59,8 +59,8 @@ GitHub → **Settings → Developer settings → Personal access tokens → Fine
 | Action | How |
 | --- | --- |
 | Move within a repo | Drag a file or folder onto a folder (or the root row). Hover while dragging to auto-expand folders. |
-| Copy to another repo | Drag from one pane onto a folder in the other pane. |
-| Move to another repo | Switch **Drag between panes** to *Move* (or hold **Shift** while dropping, which flips the current setting). |
+| Move to another repo (cut & paste) | Drag from one pane onto a folder in the other pane. This is the default: the file is added to the destination **and removed from the source**. |
+| Copy to another repo | Hold **Shift** while dropping, or switch **Drag between panes** to *Copy*. |
 | Rename | Double-click the name or press **F2**. |
 | Delete | Select and press **Del**, or use the 🗑 button. |
 | New folder | **＋ New folder**, type a name, press Enter, then drag files into it. (Git has no empty folders: a folder you fill with files just appears on commit; one left empty gets a `.gitkeep` placeholder file.) |
@@ -68,7 +68,7 @@ GitHub → **Settings → Developer settings → Personal access tokens → Fine
 | Undo | **↶ Undo** or Ctrl/⌘+Z. |
 | Commit | **Commit** in a pane, Ctrl/⌘+Enter, or **Commit both** in the header. |
 
-**Moving between repos is two commits:** the destination gets the files, the source loses them. **Commit both** does the destination first. If you commit the source first and the other commit then fails, the files exist only in your browser tab, so keep the tab open until both commits succeed.
+**Moving between repos is two commits:** the destination gets the files, the source loses them. **Commit both** does the destination first. If you commit only one pane, the other pane keeps its staged changes (and the app reminds you), so the file isn't gone from the source until you commit that pane too. If you commit the source first and the other commit then fails, the files exist only in your browser tab, so keep the tab open until both commits succeed.
 
 ## Concerns for newcomers (read this once)
 

@@ -60,7 +60,7 @@ input.ren{padding:1px 6px;min-width:160px}
 <header>
   <h1>📂 Repo Mover</h1>
   <label class="muted" id="modeWrap" style="display:none">Drag between panes:
-    <select id="mode"><option value="copy">Copy</option><option value="move">Move</option></select>
+    <select id="mode"><option value="move">Move (cut &amp; paste)</option><option value="copy">Copy</option></select>
     <span>(hold Shift to do the opposite)</span></label>
   <button id="commitAll" class="primary" style="display:none">Commit both</button>
   <span id="who" class="muted"></span>
@@ -110,7 +110,7 @@ async function boot() {
   try {
     G.user = await gh('/user');
     $('#who').textContent = G.user.login; $('#signout').style.display = '';
-    $('#modeWrap').style.display = ''; $('#mode').value = store.get('rm_mode') || 'copy';
+    $('#modeWrap').style.display = ''; $('#mode').value = store.get('rm_mode') || 'move';
     $('#app').className = ''; $('#app').innerHTML = '';
     G.panes = [new Pane(0), new Pane(1)];
     await loadRepos();
@@ -534,6 +534,7 @@ class Pane {
       this.q('.msg').value = '';
       toast(`Committed to ${name} ✔`);
       await this.loadTree(this.branch);
+      if (G.panes.some(o => o !== this && o.pending())) toast(`Committed to ${name} ✔ — the other pane still has changes to commit`);
       // keep the other pane fresh when it shows the same repo/branch
       for (const o of G.panes) if (o !== this && o.repo && o.repo.full_name === name && o.branch === this.branch && !o.pending()) o.loadTree(o.branch);
       return true;

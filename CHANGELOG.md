@@ -7,7 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - **Two-pane layout.** Each pane has its own repository picker, branch picker, file tree, undo history and commit bar.
-- **Cross-repo drag and drop.** Dragging files or folders from one pane to the other copies them (or moves them) into the destination repo. A header setting chooses Copy or Move; holding Shift does the opposite.
+- **Cross-repo drag and drop.** Dragging files or folders from one pane to the other copies them (or moves them; Move is the default) into the destination repo. A header setting chooses Copy or Move; holding Shift does the opposite.
 - Files are transferred by fetching the blob from the source repo and re-uploading it to the destination, so binary files and file modes (e.g. executable) are preserved. Duplicate blobs are only transferred once.
 - **Commit both** button: commits both panes, additions first and deletions last, so a failed commit never leaves files deleted but not yet copied.
 - Smart commit messages for cross-repo copies (`Copy 3 files from owner/repo`) and deletions.
@@ -17,6 +17,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `tests/e2e.js`: headless-browser test against an in-memory fake GitHub API.
 
 ### Changed
+- **Dragging between panes now defaults to Move** (cut and paste): the file is removed from the source pane when committed. Copy is one Shift-drag, or one setting, away. After committing one pane, the app reminds you if the other pane still has changes to commit.
 - **Narrowed scope:** the app now only moves files between repositories of one personal account. Removed repository renaming (so the token no longer needs *Administration*), uploading files from the computer, and organization/collaborator repositories in the picker.
 - **＋ New folder** creates the folder instantly and puts its name in edit mode (no pop-up), ready to drag files into, in either pane.
 - Repository sidebar replaced by a type-to-search picker in each pane.

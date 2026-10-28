@@ -66,6 +66,8 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
   let t = tree('me/alpha'); ok(t['documents/x.js'] && t['documents/a.txt'] && t['documents/sub/b.txt'] && !t['docs/a.txt'] && !t['src/x.js'], 'rename+move committed correctly');
   ok(repos['me/alpha'].log.length === 2, 'single commit created');
   await page.click(`${P(1)} .expandAll`); await page.click(`${P(2)} .expandAll`);
+  ok(await page.inputValue('#mode') === 'move', 'default drag mode is Move');
+  await page.selectOption('#mode', 'copy');
   // 5. cross-repo COPY: alpha documents -> beta lib
   await row(2, 'lib').scrollIntoViewIfNeeded();
   await row(1, 'documents').dragTo(row(2, 'lib'));
@@ -76,7 +78,7 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
   ok(Buffer.from(blobs[t['lib/documents/a.txt'].sha], 'base64').toString() === 'A', 'blob content intact');
   ok(repos['me/beta'].log.at(-1).startsWith('Copy 3 files from me/alpha'), 'auto message: ' + repos['me/beta'].log.at(-1));
   // 6. cross-repo MOVE via shift: beta top.txt -> alpha root
-  await page.selectOption('#mode','move'); await row(2, 'top.txt').dragTo(row(1, ''));
+  await page.selectOption('#mode', 'move'); await row(2, 'top.txt').dragTo(row(1, ''));
   ok(await page.locator(`${P(1)} .summary`).textContent() === '1 added' && /1 deleted/.test(await page.locator(`${P(2)} .summary`).textContent()), 'move mode (add in dest, delete in source)');
   await page.click('#commitAll'); await page.waitForTimeout(900);
   ok(tree('me/alpha')['top.txt'] && !tree('me/beta')['top.txt'], 'Commit both applied move');
@@ -84,6 +86,7 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
   await page.click(`${P(2)} .newDir`);
   await page.keyboard.type('inbox'); await page.keyboard.press('Enter');
   ok(await row(2, 'inbox').count() === 1, 'new folder created and named inline');
+  await page.selectOption('#mode', 'copy');
   await row(1, 'README.md').dragTo(row(2, 'inbox'));
   await page.click(`${P(2)} .commit`); await page.waitForTimeout(600);
   ok(tree('me/beta')['inbox/README.md'] && !tree('me/beta')['inbox/.gitkeep'], 'file landed in new folder (no stray .gitkeep)');
