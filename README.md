@@ -110,6 +110,16 @@ npm install playwright
 node tests/e2e.js "$PWD/index.html" /tmp/shot.png
 ```
 
+## How this project was made (AI-assistance disclosure)
+
+This is an AI-assisted ("vibe coded") project with a human in the loop.
+
+- **Who wrote what.** The code, tests and documentation in this repository were written by Claude (an AI model made by Anthropic) in a Claude Code session. The repository owner, credited in `LICENSE` as Kaelen, set the goals and scope, tried the hosted app on real repositories, reported what felt wrong (for example, that dragging between panes copied instead of moved), and approved the risky steps. The owner also made the final decisions.
+- **What was tested.** The automated tests (`tests/e2e.js`) run the app against a **fake, in-memory GitHub**. They show the logic works, not that every real-world situation is handled. No professional security review or code audit has been done.
+- **What that means for you.** Treat the app as a personal tool. Test it on a throwaway repository first, read the staged changes before committing, and see "Concerns for newcomers" above. The software is provided "as is" under the MIT License.
+- **Record of how it was built.** `creationlog.md` keeps a dated account of the work, including mistakes that were made and fixed. It was started so the history is not lost.
+- **Licensing note.** Whether and how copyright applies to AI-assisted code varies by country and is still being settled. See the License section.
+
 ## Project files
 
 - `index.html`: the whole app.

@@ -17,6 +17,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `tests/e2e.js`: headless-browser test against an in-memory fake GitHub API.
 
 ### Changed
+- README: added an AI-assistance disclosure (who wrote what, how it was tested, what that means for users).
 - Copyright holder in `LICENSE` changed from "Melbourne" to "Kaelen" (the account owner's digital persona).
 - README: new License section explaining MIT, why it suits this project, the alternatives, and licensing concerns when moving other people's files between repos.
 - **Dragging between panes now defaults to Move** (cut and paste): the file is removed from the source pane when committed. Copy is one Shift-drag, or one setting, away. After committing one pane, the app reminds you if the other pane still has changes to commit.

@@ -42,3 +42,7 @@ The owner asked whether MIT was the correct license and wanted to learn about li
 ## 2026-10-28: copyright holder
 
 At the owner's request the copyright holder in `LICENSE` was changed from "Melbourne" to "Kaelen", described by the owner as the digital persona of the GitHub account owner. The owner also mentioned a "three body concept" behind the persona; that is not documented anywhere in the project and was not added to any file.
+
+## 2026-10-28: AI-assistance disclosure
+
+At the owner's request a README section, "How this project was made (AI-assistance disclosure)", was added: code, tests and docs written by Claude in a Claude Code session; scope, real-world testing, review and approvals by the owner; tests ran only against a fake GitHub API; no security audit. Made on a fresh branch from `main` because the earlier pull request (#1) had already been merged. The owner's two articles were shared only to explain the three-body concept, and nothing from them was added to the repository.
