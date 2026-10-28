@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Repo Mover</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--line:#dde1e7;--text:#1c2128;--mute:#667085;--accent:#2f6fed;--accent-bg:#e6eeff;--ok:#1a7f4b;--warn:#b25e09;--bad:#c62828;--row:#eef1f5}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1318;--panel:#171c23;--line:#2a313b;--text:#e6e9ee;--mute:#8a94a3;--accent:#6c9bff;--accent-bg:#1c2a4a;--ok:#4cc38a;--warn:#f0a050;--bad:#ff7b72;--row:#202733}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;height:100vh;display:flex;flex-direction:column}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.ghost{border-color:transparent;background:transparent;padding:2px 6px}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+header{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:15px;margin:0;flex:1}
+#app{flex:1;display:flex;min-height:0}
+aside{width:250px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+aside input{margin:8px}
+#repos{overflow:auto;flex:1}
+.repo{padding:6px 12px;cursor:pointer;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.repo:hover{background:var(--row)}.repo.on{background:var(--accent-bg);font-weight:600}
+.repo span{overflow:hidden;text-overflow:ellipsis}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+.bar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+#repoTitle{font-size:16px;font-weight:600;display:flex;gap:4px;align-items:center}
+#repoTitle .own{color:var(--mute);font-weight:400}
+#tree{flex:1;overflow:auto;padding:8px 10px 40px;outline:none}
+.row{display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;cursor:default;border:1px solid transparent;user-select:none}
+.row:hover{background:var(--row)}
+.row.sel{background:var(--accent-bg)}
+.row.over{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 2px var(--accent) inset}
+.row.root{font-weight:600;margin-bottom:2px}
+.caret{width:14px;text-align:center;color:var(--mute);font-size:10px;cursor:pointer;transition:transform .1s}
+.node.open>.row>.caret{transform:rotate(90deg)}
+.node>.kids{display:none}.node.open>.kids{display:block}
+.name{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dir>.name,.row.dirrow .name{font-weight:500}
+.tag{font-size:11px;padding:0 6px;border-radius:9px;border:1px solid currentColor}
+.tag.moved{color:var(--warn)}.tag.new{color:var(--ok)}.tag.mod{color:var(--warn);border:0;padding:0}
+.acts{margin-left:auto;display:none;gap:2px}
+.row:hover .acts{display:flex}
+input.ren{padding:1px 6px;min-width:160px}
+#commitBar{border-top:1px solid var(--line);background:var(--panel);padding:8px 14px;display:none;flex-direction:column;gap:8px}
+#commitBar.show{display:flex}
+#changes{max-height:160px;overflow:auto;font:12px ui-monospace,Consolas,monospace;color:var(--mute);display:none}
+#changes.show{display:block}
+#changes b{color:var(--text);font-weight:400}
+.line{display:flex;gap:8px;align-items:center}.line input{flex:1}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:80vw;z-index:9}
+#toast.show{opacity:1}#toast.err{background:var(--bad)}
+.center{margin:12vh auto;max-width:520px;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.center h2{margin-top:0}.center input{width:100%;margin:8px 0}
+.center code{background:var(--row);padding:1px 5px;border-radius:4px}
+.muted{color:var(--mute)}
+.hint{color:var(--mute);font-size:12px;padding:6px 14px}
+@media(max-width:700px){aside{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📂 Repo Mover</h1>
+  <span id="who" class="muted"></span>
+  <button id="signout" style="display:none">Sign out</button>
+</header>
+<div id="app"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dirname = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '';
+const basename = p => p.slice(p.lastIndexOf('/') + 1);
+const join = (d, n) => d ? d + '/' + n : n;
+const under = (p, d) => p === d || p.startsWith(d + '/');
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } },
+                set(k,v){ try { localStorage.setItem(k,v); } catch {} },
+                del(k){ try { localStorage.removeItem(k); } catch {} } };
+
+const S = {
+  token: store.get('rm_token') || '', user: null, repos: [], repo: null, branches: [], branch: '',
+  headCommit: '', baseTree: '', truncated: false,
+  orig: [], origMap: new Map(), files: [], virt: new Set(),
+  expanded: new Set(), selected: new Set(), undo: [], newId: 0, dragging: null
+};
+let IDX = new Map(), CHG = new Map(), CHGDIRS = new Set();
+
+/* ---------- GitHub API ---------- */
+async function gh(path, opts = {}) {
+  const r = await fetch('https://api.github.com' + path, { ...opts, headers: {
+    Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + S.token,
+    'X-GitHub-Api-Version': '2022-11-28', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) } });
+  if (!r.ok) {
+    let m = ''; try { m = (await r.json()).message; } catch {}
+    throw new Error(r.status + ' ' + (m || r.statusText));
+  }
+  return r.status === 204 ? null : r.json();
+}
+const post = (p, b, method = 'POST') => gh(p, { method, body: JSON.stringify(b) });
+
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = '', err ? 5000 : 2200);
+}
+
+/* ---------- boot / sign-in ---------- */
+async function boot() {
+  if (!S.token) return showLogin();
+  try {
+    S.user = await gh('/user');
+    $('#who').textContent = S.user.login; $('#signout').style.display = '';
+    renderShell();
+    await loadRepos();
+    const last = store.get('rm_repo');
+    const r = S.repos.find(x => x.full_name === last);
+    if (r) selectRepo(r);
+  } catch (e) { store.del('rm_token'); S.token = ''; showLogin(e.message); }
+}
+function showLogin(err) {
+  $('#who').textContent = ''; $('#signout').style.display = 'none';
+  $('#app').innerHTML = `<div class="center"><h2>Connect to GitHub</h2>
+    <p>Create a personal access token and paste it here. It stays in this browser only (localStorage) and is sent only to api.github.com.</p>
+    <ul class="muted"><li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained token</a>: pick your repos, grant <code>Contents: Read and write</code> and <code>Administration: Read and write</code> (needed to rename a repo).</li>
+    <li>Or a <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" rel="noopener">classic token</a> with the <code>repo</code> scope.</li></ul>
+    <input id="tok" type="password" placeholder="ghp_… or github_pat_…" autocomplete="off">
+    ${err ? `<div style="color:var(--bad)">${esc(err)}</div>` : ''}
+    <button class="primary" id="go">Connect</button></div>`;
+  const go = () => { S.token = $('#tok').value.trim(); if (!S.token) return; store.set('rm_token', S.token); boot(); };
+  $('#go').onclick = go; $('#tok').onkeydown = e => e.key === 'Enter' && go();
+}
+$('#signout').onclick = () => { if (pending() && !confirm('Discard pending changes and sign out?')) return;
+  store.del('rm_token'); store.del('rm_repo'); location.reload(); };
+
+/* ---------- shell ---------- */
+function renderShell() {
+  $('#app').innerHTML = `
+  <aside><input id="filter" placeholder="Filter repos…"><div id="repos"></div></aside>
+  <main>
+    <div class="bar" id="topbar"><span class="muted">Select a repository</span></div>
+    <div class="bar" id="toolbar" style="display:none">
+      <select id="branch"></select>
+      <button id="newDir">＋ New folder</button>
+      <button id="expandAll">Expand all</button><button id="collapseAll">Collapse all</button>
+      <button id="undo" disabled>↶ Undo</button>
+      <span class="muted" style="margin-left:auto" id="trunc"></span>
+    </div>
+    <div class="hint" id="hint" style="display:none">Drag files or folders onto a folder to move them · double-click a name (or F2) to rename · drop files from your computer to add them · Ctrl/⌘-click to multi-select · changes are staged until you commit.</div>
+    <div id="tree" tabindex="0"></div>
+    <div id="commitBar">
+      <div id="changes"></div>
+      <div class="line"><span id="summary"></span><button class="ghost" id="toggleChanges">details</button>
+        <input id="msg" placeholder="Commit message"><button id="discard">Discard</button><button class="primary" id="commit">Commit</button></div>
+    </div>
+  </main>`;
+  $('#filter').oninput = renderRepoList;
+  $('#newDir').onclick = newFolder;
+  $('#expandAll').onclick = () => { dirs().forEach(d => S.expanded.add(d)); render(); };
+  $('#collapseAll').onclick = () => { S.expanded.clear(); render(); };
+  $('#undo').onclick = undo;
+  $('#discard').onclick = () => { if (confirm('Discard all staged changes?')) resetWork(); };
+  $('#commit').onclick = commit;
+  $('#toggleChanges').onclick = () => $('#changes').classList.toggle('show');
+  $('#branch').onchange = async e => {
+    if (pending() && !confirm('Discard staged changes and switch branch?')) { e.target.value = S.branch; return; }
+    await loadTree(e.target.value);
+  };
+  wireTree();
+}
+
+async function loadRepos() {
+  S.repos = [];
+  for (let p = 1; p <= 5; p++) {
+    const page = await gh(`/user/repos?per_page=100&page=${p}&sort=pushed&affiliation=owner,collaborator,organization_member`);
+    S.repos.push(...page); if (page.length < 100) break;
+  }
+  renderRepoList();
+}
+function renderRepoList() {
+  const q = ($('#filter')?.value || '').toLowerCase();
+  $('#repos').innerHTML = S.repos.filter(r => r.full_name.toLowerCase().includes(q)).map(r =>
+    `<div class="repo ${S.repo?.id === r.id ? 'on' : ''}" data-id="${r.id}" title="${esc(r.full_name)}">${r.private ? '🔒' : '📁'}<span>${esc(r.full_name)}</span></div>`).join('');
+  $('#repos').querySelectorAll('.repo').forEach(el => {
+    el.onclick = () => { const r = S.repos.find(x => x.id == el.dataset.id); if (r && r !== S.repo) selectRepo(r); };
+    el.ondblclick = async () => { const r = S.repos.find(x => x.id == el.dataset.id); if (r !== S.repo) await selectRepo(r); startRepoRename(); };
+  });
+}
+
+async function selectRepo(r) {
+  if (pending() && !confirm('Discard staged changes and switch repository?')) return;
+  S.repo = r; store.set('rm_repo', r.full_name); S.expanded.clear(); S.selected.clear();
+  renderRepoList(); renderTopbar();
+  $('#toolbar').style.display = ''; $('#hint').style.display = '';
+  try {
+    S.branches = (await gh(`/repos/${r.full_name}/branches?per_page=100`)).map(b => b.name);
+    $('#branch').innerHTML = S.branches.map(b => `<option>${esc(b)}</option>`).join('');
+    await loadTree(S.branches.includes(r.default_branch) ? r.default_branch : S.branches[0]);
+  } catch (e) { $('#tree').innerHTML = ''; toast(e.message, true); }
+}
+function renderTopbar() {
+  const r = S.repo;
+  $('#topbar').innerHTML = `<div id="repoTitle"><span class="own">${esc(r.owner.login)} /</span><span id="rname">${esc(r.name)}</span>
+    <button class="ghost" id="renameRepo" title="Rename repository">✎</button></div>
+    <a href="${esc(r.html_url)}" target="_blank" rel="noopener" class="muted" style="margin-left:auto">open on GitHub ↗</a>`;
+  $('#renameRepo').onclick = startRepoRename; $('#rname').ondblclick = startRepoRename;
+}
+function startRepoRename() {
+  const el = $('#rname'); if (!el) return;
+  const inp = document.createElement('input'); inp.value = S.repo.name; inp.className = 'ren';
+  el.replaceWith(inp); inp.focus(); inp.select();
+  let done = false;
+  const fin = async ok => {
+    if (done) return; done = true;
+    const v = inp.value.trim();
+    if (ok && v && v !== S.repo.name) {
+      try {
+        const r = await post(`/repos/${S.repo.full_name}`, { name: v }, 'PATCH');
+        const i = S.repos.findIndex(x => x.id === r.id); if (i >= 0) S.repos[i] = r;
+        S.repo = r; store.set('rm_repo', r.full_name); renderRepoList(); toast(`Renamed to ${r.name}`);
+      } catch (e) { toast('Rename failed: ' + e.message, true); }
+    }
+    renderTopbar();
+  };
+  inp.onkeydown = e => { if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); };
+  inp.onblur = () => fin(true);
+}
+
+/* ---------- tree loading ---------- */
+async function loadTree(branch) {
+  S.branch = branch; $('#branch').value = branch;
+  $('#tree').innerHTML = '<div class="muted" style="padding:12px">Loading…</div>';
+  try {
+    const ref = await gh(`/repos/${S.repo.full_name}/git/ref/heads/${branch}`);
+    S.headCommit = ref.object.sha;
+    const commit = await gh(`/repos/${S.repo.full_name}/git/commits/${S.headCommit}`);
+    S.baseTree = commit.tree.sha;
+    const t = await gh(`/repos/${S.repo.full_name}/git/trees/${S.baseTree}?recursive=1`);
+    S.truncated = !!t.truncated;
+    S.orig = t.tree.filter(e => e.type !== 'tree').map(e => ({ id: e.path, path: e.path, sha: e.sha, mode: e.mode, type: e.type }));
+  } catch (e) {
+    S.orig = []; S.headCommit = '';
+    toast(e.message.startsWith('409') ? 'This repository is empty — make a first commit on GitHub first.' : e.message, true);
+  }
+  $('#trunc').textContent = S.truncated ? '⚠ tree truncated by GitHub (very large repo)' : '';
+  resetWork();
+}
+function resetWork() {
+  S.origMap = new Map(S.orig.map(o => [o.id, o]));
+  S.files = S.orig.map(o => ({ ...o })); S.virt = new Set(); S.undo = []; S.selected.clear();
+  render();
+}
+
+/* ---------- derived structure ---------- */
+function dirs() {
+  const d = new Set();
+  const addAnc = p => { for (let x = dirname(p); x; x = dirname(x)) d.add(x); };
+  S.files.forEach(f => addAnc(f.path));
+  S.virt.forEach(v => { d.add(v); addAnc(v); });
+  return d;
+}
+function rebuild() {
+  const D = dirs(); IDX = new Map(); IDX.set('', { dirs: [], files: [] });
+  D.forEach(d => IDX.set(d, { dirs: [], files: [] }));
+  D.forEach(d => IDX.get(dirname(d)).dirs.push(d));
+  S.files.forEach(f => IDX.get(dirname(f.path)).files.push(f));
+  const byName = (a, b) => basename(a.path ?? a).localeCompare(basename(b.path ?? b), undefined, { numeric: true, sensitivity: 'base' });
+  IDX.forEach(v => { v.dirs.sort(byName); v.files.sort(byName); });
+  CHG = new Map(); CHGDIRS = new Set();
+  for (const f of S.files) {
+    const o = S.origMap.get(f.id);
+    const st = f.isNew ? 'new' : (o && o.path !== f.path ? 'moved' : '');
+    if (st) {
+      CHG.set(f.id, st);
+      for (let x = dirname(f.path); x; x = dirname(x)) CHGDIRS.add(x);
+      if (o) for (let x = dirname(o.path); x; x = dirname(x)) CHGDIRS.add(x);
+    }
+  }
+}
+
+/* ---------- rendering ---------- */
+function rowHTML(kind, path, depth) {
+  const sel = S.selected.has(path) ? ' sel' : '';
+  const pad = `padding-left:${8 + depth * 18}px`;
+  const acts = `<span class="acts"><button class="ghost" data-act="rename" title="Rename (F2)">✎</button><button class="ghost" data-act="del" title="Delete (Del)">🗑</button></span>`;
+  const mod = CHGDIRS.has(path) ? '<span class="tag mod" title="contains changes">●</span>' : '';
+  return `<div class="row dirrow${sel}" draggable="true" data-type="dir" data-path="${esc(path)}" style="${pad}"><span class="caret" data-act="toggle">▶</span><span>📁</span><span class="name">${esc(basename(path))}</span>${mod}${acts}</div>`;
+}
+function fileRow(f, depth) {
+  const sel = S.selected.has(f.path) ? ' sel' : '';
+  const st = CHG.get(f.id);
+  const o = S.origMap.get(f.id);
+  const tag = st ? `<span class="tag ${st}" ${o ? `title="from ${esc(o.path)}"` : ''}>${st}</span>` : '';
+  return `<div class="row${sel}" draggable="true" data-type="file" data-path="${esc(f.path)}" style="padding-left:${8 + depth * 18}px"><span class="caret"></span><span>📄</span><span class="name">${esc(basename(f.path))}</span>${tag}<span class="acts"><button class="ghost" data-act="rename" title="Rename (F2)">✎</button><button class="ghost" data-act="del" title="Delete (Del)">🗑</button></span></div>`;
+}
+function renderKids(dir, depth) {
+  const c = IDX.get(dir); if (!c) return '';
+  return c.dirs.map(d => {
+    const open = S.expanded.has(d);
+    return `<div class="node${open ? ' open' : ''}" data-p="${esc(d)}">${rowHTML('dir', d, depth)}<div class="kids">${open ? renderKids(d, depth + 1) : ''}</div></div>`;
+  }).join('') + c.files.map(f => fileRow(f, depth)).join('');
+}
+function render() {
+  if (!S.repo) return;
+  rebuild();
+  const empty = !S.files.length && !S.virt.size;
+  $('#tree').innerHTML = `<div class="row root" data-type="dir" data-path="">📦 ${esc(S.repo.name)} <span class="muted" style="font-weight:400">/ (root)</span></div>` +
+    (empty ? '<div class="muted" style="padding:12px">Empty. Drop files here or create a folder.</div>' : renderKids('', 0));
+  $('#undo').disabled = !S.undo.length;
+  renderCommitBar();
+}
+function rowFor(path) {
+  for (const r of $('#tree').querySelectorAll('.row')) if (r.dataset.path === path) return r;
+  return null;
+}
+function paintSel() {
+  $('#tree').querySelectorAll('.row').forEach(r => r.classList.toggle('sel', S.selected.has(r.dataset.path)));
+}
+function expandNode(path, on = true) {
+  if (on) S.expanded.add(path); else S.expanded.delete(path);
+  const row = rowFor(path); if (!row) return;
+  const node = row.parentElement; node.classList.toggle('open', on);
+  const kids = node.querySelector(':scope > .kids');
+  if (on && !kids.firstChild) kids.innerHTML = renderKids(path, path.split('/').length);
+}
+
+/* ---------- mutations ---------- */
+function snapshot() {
+  S.undo.push({ files: S.files.map(f => ({ ...f })), virt: [...S.virt], expanded: [...S.expanded] });
+  if (S.undo.length > 100) S.undo.shift();
+}
+function undo() {
+  const s = S.undo.pop(); if (!s) return;
+  S.files = s.files; S.virt = new Set(s.virt); S.expanded = new Set(s.expanded); S.selected.clear(); render();
+}
+function remap(s, np) {
+  const re = p => under(p, s) ? np + p.slice(s.length) : p;
+  S.files.forEach(f => f.path = re(f.path));
+  S.virt = new Set([...S.virt].map(re));
+  S.expanded = new Set([...S.expanded].map(re));
+}
+function applyMoves(plan) {
+  const D = dirs(), files = new Set(S.files.map(f => f.path)), seen = new Set();
+  for (const [s, np] of plan) {
+    if (files.has(np) || D.has(np) || seen.has(np)) { toast(`"${basename(np)}" already exists there`, true); return false; }
+    // a file can't become the parent of something (and vice versa)
+    for (let x = dirname(np); x; x = dirname(x)) if (files.has(x)) { toast(`"${x}" is a file`, true); return false; }
+    seen.add(np);
+  }
+  snapshot();
+  const moved = [];
+  for (const [s, np] of plan) { remap(s, np); moved.push(np); }
+  S.selected = new Set(moved);
+  render();
+  return true;
+}
+function moveItems(srcs, dest) {
+  const D = dirs();
+  srcs = [...new Set(srcs)];
+  srcs = srcs.filter(s => !srcs.some(o => o !== s && under(s, o)));
+  const plan = [];
+  for (const s of srcs) {
+    if (D.has(s) && under(dest, s)) return toast("A folder can't go inside itself", true);
+    const np = join(dest, basename(s)); if (np !== s) plan.push([s, np]);
+  }
+  if (!plan.length) return;
+  if (applyMoves(plan)) { if (dest) S.expanded.add(dest); render(); }
+}
+function renameItem(path, name) {
+  if (!name || /[\/\\]/.test(name) || name === '.' || name === '..') { toast('Invalid name', true); return render(); }
+  if (!applyMoves([[path, join(dirname(path), name)]])) render();
+}
+function deleteItems(paths) {
+  paths = [...paths]; if (!paths.length) return;
+  snapshot();
+  S.files = S.files.filter(f => !paths.some(p => under(f.path, p)));
+  S.virt = new Set([...S.virt].filter(v => !paths.some(p => under(v, p))));
+  S.selected.clear(); render();
+}
+function newFolder() {
+  let base = '';
+  const sel = [...S.selected][0];
+  if (sel) base = dirs().has(sel) ? sel : dirname(sel);
+  const name = prompt(`New folder${base ? ' in ' + base : ' in repo root'}:`);
+  if (!name) return;
+  if (/[\\]/.test(name) || name === '.' || name === '..') return toast('Invalid name', true);
+  const p = join(base, name.replace(/^\/+|\/+$/g, ''));
+  if (dirs().has(p) || S.files.some(f => f.path === p)) return toast('Already exists', true);
+  snapshot(); S.virt.add(p);
+  for (let x = p; x; x = dirname(x)) S.expanded.add(dirname(x));
+  S.selected = new Set([p]); render();
+}
+async function uploadFiles(list, dest) {
+  const arr = [...list]; let added = 0; snapshot();
+  for (const file of arr) {
+    if (file.size > 25 * 1024 * 1024) { toast(`${file.name} is over 25 MB — skipped`, true); continue; }
+    const p = join(dest, file.name);
+    if (S.files.some(f => f.path === p) || dirs().has(p)) { toast(`${file.name} already exists — skipped`, true); continue; }
+    try {
+      const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1] || ''); fr.onerror = rej; fr.readAsDataURL(file); });
+      S.files.push({ id: 'new:' + (++S.newId), path: p, isNew: true, b64, mode: '100644', type: 'blob' }); added++;
+    } catch { toast(`Couldn't read ${file.name} (folders aren't supported)`, true); }
+  }
+  if (!added) { S.undo.pop(); return; }
+  if (dest) S.expanded.add(dest); render();
+}
+
+/* ---------- commit ---------- */
+const pending = () => { if (!S.repo) return 0; const d = diff(); return d.moved.length + d.added.length + d.deleted.length + d.emptyDirs.length; };
+function diff() {
+  const cur = new Map(S.files.map(f => [f.id, f]));
+  const moved = [], deleted = [], added = S.files.filter(f => f.isNew);
+  for (const o of S.orig) {
+    const c = cur.get(o.id);
+    if (!c) deleted.push(o); else if (c.path !== o.path) moved.push([o, c]);
+  }
+  const emptyDirs = [...S.virt].filter(v => !S.files.some(f => under(f.path, v)));
+  return { moved, deleted, added, emptyDirs };
+}
+function renderCommitBar() {
+  const d = diff(), n = d.moved.length + d.added.length + d.deleted.length + d.emptyDirs.length;
+  $('#commitBar').classList.toggle('show', n > 0);
+  const bits = [];
+  if (d.moved.length) bits.push(`${d.moved.length} moved/renamed`);
+  if (d.added.length) bits.push(`${d.added.length} added`);
+  if (d.deleted.length) bits.push(`${d.deleted.length} deleted`);
+  if (d.emptyDirs.length) bits.push(`${d.emptyDirs.length} new folder${d.emptyDirs.length > 1 ? 's' : ''}`);
+  $('#summary').textContent = bits.join(' · ');
+  const L = [];
+  d.moved.forEach(([o, c]) => L.push(`<div>↪ ${esc(o.path)} → <b>${esc(c.path)}</b></div>`));
+  d.added.forEach(f => L.push(`<div>＋ <b>${esc(f.path)}</b></div>`));
+  d.deleted.forEach(o => L.push(`<div>✕ ${esc(o.path)}</div>`));
+  d.emptyDirs.forEach(p => L.push(`<div>＋ <b>${esc(p)}/.gitkeep</b></div>`));
+  $('#changes').innerHTML = L.slice(0, 300).join('') + (L.length > 300 ? `<div>…and ${L.length - 300} more</div>` : '');
+  const msg = $('#msg');
+  msg.placeholder = autoMessage(d);
+}
+function autoMessage(d) {
+  if (d.moved.length && !d.added.length && !d.deleted.length && !d.emptyDirs.length) {
+    if (d.moved.length === 1) return `Move ${d.moved[0][0].path} to ${d.moved[0][1].path}`;
+    return `Reorganize: move/rename ${d.moved.length} files`;
+  }
+  return 'Reorganize files';
+}
+async function commit() {
+  const d = diff(); if (!pending()) return;
+  const message = $('#msg').value.trim() || autoMessage(d);
+  const btn = $('#commit'); btn.disabled = true; btn.textContent = 'Committing…';
+  const R = `/repos/${S.repo.full_name}`;
+  try {
+    const map = new Map();
+    d.deleted.forEach(o => map.set(o.path, { path: o.path, mode: o.mode, type: o.type, sha: null }));
+    d.moved.forEach(([o]) => map.set(o.path, { path: o.path, mode: o.mode, type: o.type, sha: null }));
+    d.moved.forEach(([o, c]) => map.set(c.path, { path: c.path, mode: o.mode, type: o.type, sha: o.sha }));
+    for (const f of d.added) {
+      const b = await post(`${R}/git/blobs`, { content: f.b64, encoding: 'base64' });
+      map.set(f.path, { path: f.path, mode: '100644', type: 'blob', sha: b.sha });
+    }
+    if (d.emptyDirs.length) {
+      let keep;
+      try { keep = (await post(`${R}/git/blobs`, { content: '', encoding: 'utf-8' })).sha; }
+      catch { keep = (await post(`${R}/git/blobs`, { content: '\n', encoding: 'utf-8' })).sha; }
+      d.emptyDirs.forEach(p => map.set(p + '/.gitkeep', { path: p + '/.gitkeep', mode: '100644', type: 'blob', sha: keep }));
+    }
+    const tree = await post(`${R}/git/trees`, { base_tree: S.baseTree, tree: [...map.values()] });
+    const c = await post(`${R}/git/commits`, { message, tree: tree.sha, parents: [S.headCommit] });
+    await post(`${R}/git/refs/heads/${S.branch}`, { sha: c.sha }, 'PATCH');
+    $('#msg').value = '';
+    toast('Committed ✔');
+    await loadTree(S.branch);
+  } catch (e) {
+    toast('Commit failed: ' + e.message + (e.message.startsWith('422') ? ' (branch changed on GitHub? reload and redo)' : ''), true);
+  } finally { btn.disabled = false; btn.textContent = 'Commit'; }
+}
+addEventListener('beforeunload', e => { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- tree interaction ---------- */
+function startRename(path) {
+  const row = rowFor(path); if (!row) return;
+  const nm = row.querySelector('.name'); if (!nm) return;
+  row.draggable = false;
+  const inp = document.createElement('input'); inp.className = 'ren'; inp.value = basename(path);
+  nm.replaceWith(inp); inp.focus();
+  const dot = row.dataset.type === 'file' ? inp.value.lastIndexOf('.') : -1;
+  inp.setSelectionRange(0, dot > 0 ? dot : inp.value.length);
+  let done = false;
+  const fin = ok => {
+    if (done) return; done = true;
+    const v = inp.value.trim();
+    if (ok && v !== basename(path)) renameItem(path, v); else render();
+  };
+  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); };
+  inp.onblur = () => fin(true);
+  inp.onclick = e => e.stopPropagation();
+}
+
+function wireTree() {
+  const T = $('#tree');
+  let overDest = null, hoverTimer = null;
+  const clearOver = () => { T.querySelectorAll('.row.over').forEach(r => r.classList.remove('over')); overDest = null; clearTimeout(hoverTimer); };
+  const destOf = e => {
+    const row = e.target.closest('.row');
+    if (!row) return '';
+    return row.dataset.type === 'dir' ? row.dataset.path : dirname(row.dataset.path);
+  };
+
+  T.addEventListener('click', e => {
+    const row = e.target.closest('.row'); if (!row) { S.selected.clear(); paintSel(); return; }
+    const path = row.dataset.path, act = e.target.closest('[data-act]')?.dataset.act;
+    if (act === 'rename') return startRename(path);
+    if (act === 'del') return deleteItems([path]);
+    if (!path) return;
+    if (e.ctrlKey || e.metaKey) { S.selected.has(path) ? S.selected.delete(path) : S.selected.add(path); }
+    else S.selected = new Set([path]);
+    paintSel();
+    if (row.dataset.type === 'dir' && !(e.ctrlKey || e.metaKey) && e.detail < 2) expandNode(path, !S.expanded.has(path));
+  });
+  T.addEventListener('dblclick', e => {
+    const row = e.target.closest('.row'); if (!row || !row.dataset.path) return;
+    if (e.target.classList.contains('name')) startRename(row.dataset.path);
+  });
+  T.addEventListener('keydown', e => {
+    const first = [...S.selected][0];
+    if (e.key === 'F2' && first) { e.preventDefault(); startRename(first); }
+    else if (e.key === 'Delete' && S.selected.size) deleteItems(S.selected);
+    else if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') commit();
+  });
+
+  T.addEventListener('dragstart', e => {
+    const row = e.target.closest('.row'); if (!row || !row.dataset.path) return e.preventDefault();
+    const p = row.dataset.path;
+    if (!S.selected.has(p)) { S.selected = new Set([p]); paintSel(); }
+    S.dragging = [...S.selected];
+    e.dataTransfer.setData('application/x-paths', JSON.stringify(S.dragging));
+    e.dataTransfer.setData('text/plain', S.dragging.join('\n'));
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  T.addEventListener('dragover', e => {
+    e.preventDefault();
+    const dest = destOf(e);
+    e.dataTransfer.dropEffect = S.dragging ? 'move' : 'copy';
+    if (dest === overDest) return;
+    clearOver(); overDest = dest;
+    const r = rowFor(dest); if (r) r.classList.add('over');
+    if (dest && !S.expanded.has(dest)) hoverTimer = setTimeout(() => expandNode(dest, true), 700);
+  });
+  T.addEventListener('dragleave', e => { if (!T.contains(e.relatedTarget)) clearOver(); });
+  T.addEventListener('dragend', () => { S.dragging = null; clearOver(); });
+  T.addEventListener('drop', e => {
+    e.preventDefault();
+    const dest = destOf(e); clearOver();
+    const internal = S.dragging; S.dragging = null;
+    if (internal) moveItems(internal, dest);
+    else if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files, dest);
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
